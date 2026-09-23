@@ -1,5 +1,5 @@
 import { lazy, Suspense, type ReactNode } from 'react'
-import { Route, Routes } from 'react-router-dom'
+import { Route, Routes, useParams } from 'react-router-dom'
 import { AppLayout } from '@/components/AppLayout'
 import { PublicOnly, RequireAuth, RequireProfile } from '@/components/Guards'
 import { FeedSkeleton, FullPageLoader } from '@/components/Skeletons'
@@ -13,6 +13,12 @@ const OnboardingPage = lazy(() => import('@/pages/OnboardingPage'))
 const ProfilePage = lazy(() => import('@/pages/ProfilePage'))
 const SavedPage = lazy(() => import('@/pages/SavedPage'))
 const SearchPage = lazy(() => import('@/pages/SearchPage'))
+
+// Remount per article so request state never carries over between articles.
+function ArticleRoute() {
+  const { id } = useParams()
+  return <ArticlePage key={id} />
+}
 
 const page = (el: ReactNode) => <Suspense fallback={<FeedSkeleton count={2} />}>{el}</Suspense>
 
@@ -41,7 +47,7 @@ export default function App() {
         <Route path="search" element={page(<SearchPage />)} />
         <Route path="saved" element={page(<SavedPage />)} />
         <Route path="profile" element={page(<ProfilePage />)} />
-        <Route path="article/:id" element={page(<ArticlePage />)} />
+        <Route path="article/:id" element={page(<ArticleRoute />)} />
         <Route path="*" element={page(<NotFoundPage />)} />
       </Route>
     </Routes>

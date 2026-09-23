@@ -8,7 +8,6 @@ import { Button, cx, ErrorState, Logo } from '@/components/ui'
 import { useAuth } from '@/context/AuthContext'
 import { useCatalog, useProfileBundle } from '@/hooks/useProfile'
 import { friendlyError } from '@/lib/errors'
-import { requestBackfill } from '@/services/impactService'
 import { saveProfile, setUserGoals, setUserImpactAreas, setUserInterests } from '@/services/profileService'
 
 const STEPS = ['About you', 'Interests', 'Goals', 'Impact areas', 'Summary']
@@ -109,9 +108,6 @@ export default function OnboardingPage() {
   }
 
   async function finish() {
-    // Kick off targeted AI analysis for this user in the background; the feed
-    // works immediately from the relevance model either way.
-    void requestBackfill().then(() => qc.invalidateQueries({ queryKey: ['feed'] }))
     await qc.invalidateQueries({ queryKey: ['profile', user?.id] })
     navigate('/', { replace: true })
   }

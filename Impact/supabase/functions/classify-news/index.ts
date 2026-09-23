@@ -7,6 +7,8 @@
 // in taxonomy.ts is used and the response reports `method: "rules"`.
 //
 // Body: { article_ids?: string[], limit?: number, analyze?: boolean }
+// Impact analysis is on demand (per article, from the app); pass analyze: true to
+// pre-generate analyses for relevant users instead.
 // Without article_ids, recent articles that have no article_topics rows are classified.
 
 import { adminClient, getCaller, invokeFunction, selectIn } from "../_shared/admin.ts";
@@ -209,8 +211,8 @@ Deno.serve(async (req) => {
   };
   console.log("classify-news", JSON.stringify(summary));
 
-  // Stage 3: targeted impact analysis for users these articles are relevant to.
-  if (body.analyze !== false) {
+  // Optional stage 3: pre-generate analyses for users these articles are relevant to.
+  if (body.analyze === true) {
     const next = invokeFunction("generate-impact", { article_ids: ids }).catch((e) =>
       console.error("generate-impact invocation failed", e),
     );
