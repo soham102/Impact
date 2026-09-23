@@ -10,7 +10,7 @@ const url = rawUrl?.trim().replace(/\/rest\/v1\/?$/, '').replace(/\/$/, '')
 
 export const supabaseConfigError =
   !url || url.startsWith('PASTE_') || !anonKey || anonKey.startsWith('PASTE_')
-    ? 'Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env.local and restart the dev server.'
+    ? 'Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY (in .env.local locally, or in the hosting environment variables), then rebuild.'
     : null
 
 export const supabase = createClient(url || 'http://localhost', anonKey || 'missing-key', {

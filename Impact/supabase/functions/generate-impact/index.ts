@@ -10,9 +10,7 @@
 //
 // Modes
 //   service  { article_ids: string[] }   → candidates across all users (pipeline)
-//   user     { article_id: string }      → on-demand analysis for the caller only
-//   user     { mode: "backfill" }        → the caller's most relevant recent
-//                                          articles without analysis (after onboarding)
+//   user     { article_id: string }      → on-demand analysis of that one article, for the caller only
 
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { adminClient, getCaller, selectIn } from "../_shared/admin.ts";
@@ -25,7 +23,6 @@ type Row = Record<string, unknown>;
 const MAX_USERS_PER_ARTICLE = 25;
 const MAX_ANALYSES_PER_RUN = 60;
 const USERS_PER_CALL = 8;
-const BACKFILL_ARTICLES = 6;
 
 interface Article {
   id: string;
@@ -225,7 +222,7 @@ Deno.serve(async (req) => {
   }
   const caller = await getCaller(req, admin);
   if (!caller) return json({ error: "Unauthorized" }, 401);
-  const body = (await req.json().catch(() => ({}))) as { article_ids?: string[]; article_id?: string; mode?: string };
+  const body = (await req.json().catch(() => ({}))) as { article_ids?: string[]; article_id?: string };
 
   try {
     // ---------- Build the (article → candidate users) plan ----------
@@ -277,29 +274,8 @@ Deno.serve(async (req) => {
         if (error || !data) return json({ error: "Article not found" }, 404);
         plan.push({ article: toArticle(data as Row), profiles: [profile] });
         candidatesConsidered = 1;
-      } else if (body.mode === "backfill") {
-        const since = new Date(Date.now() - 7 * 86_400_000).toISOString();
-        const { data, error } = await admin
-          .from("news_articles")
-          .select(ARTICLE_SELECT)
-          .gte("published_at", since)
-          .order("published_at", { ascending: false })
-          .limit(300);
-        if (error) throw new Error(error.message);
-        const { data: mine } = await admin.from("impact_analysis").select("article_id").eq("user_id", caller.userId);
-        const have = new Set((mine ?? []).map((m: Row) => m.article_id as string));
-        const ranked = ((data ?? []) as Row[])
-          .map(toArticle)
-          .filter((a) => !have.has(a.id))
-          .map((a) => ({ a, r: computeRelevance(profile, a) }))
-          .filter((x) => x.r.score >= SCORE_THRESHOLDS.medium)
-          .sort((x, y) => y.r.score - x.r.score)
-          .slice(0, BACKFILL_ARTICLES);
-        candidatesConsidered = ranked.length;
-        ranked.forEach((x) => plan.push({ article: x.a, profiles: [profile] }));
-        storeIrrelevant = false;
       } else {
-        return json({ error: "Provide article_id or mode: 'backfill'." }, 400);
+        return json({ error: "Provide article_id." }, 400);
       }
     }
 

@@ -68,12 +68,3 @@ export async function requestAnalysis(articleId: string): Promise<{ generated: n
   if (error) throw new Error(await functionErrorMessage(error, 'Impact analysis'))
   return data ?? { generated: 0 }
 }
-
-/** After onboarding: analyse the user's most relevant recent articles. Best-effort. */
-export async function requestBackfill(): Promise<void> {
-  try {
-    await supabase.functions.invoke('generate-impact', { body: { mode: 'backfill' } })
-  } catch {
-    /* the feed still works from the relevance model */
-  }
-}
